@@ -224,12 +224,12 @@ public abstract class BaseExecutor implements Executor {
           MetaObject metaObject = configuration.newMetaObject(parameterObject);
           value = metaObject.getValue(propertyName);
         }
-        cacheKey.update(value);
+        cacheKey.update(value);//41
       }
     }
     if (configuration.getEnvironment() != null) {
       // issue #176
-      cacheKey.update(configuration.getEnvironment().getId());
+      cacheKey.update(configuration.getEnvironment().getId());//mysql
     }
     return cacheKey;
   }

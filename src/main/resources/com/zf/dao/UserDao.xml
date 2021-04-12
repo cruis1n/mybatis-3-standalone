@@ -64,4 +64,7 @@
             #{uid}
         </foreach>
     </select>
+    <select id="findOne" resultType="com.zf.domain.User" >
+        SELECT * FROM user WHERE id = #{id}
+    </select>
 </mapper>

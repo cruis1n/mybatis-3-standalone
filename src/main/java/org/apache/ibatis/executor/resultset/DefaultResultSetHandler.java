@@ -181,25 +181,34 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   @Override
   public List<Object> handleResultSets(Statement stmt) throws SQLException {
     ErrorContext.instance().activity("handling results").object(mappedStatement.getId());
-
+    //创建一个List用于存放经过处理后的结果集
     final List<Object> multipleResults = new ArrayList<>();
 
     int resultSetCount = 0;
+    //获取第一个结果集
     ResultSetWrapper rsw = getFirstResultSet(stmt);
-
+    //从MappedStatement中获取resultMaps (<resultMap>标签中定义的所有结果映射)
     List<ResultMap> resultMaps = mappedStatement.getResultMaps();
+    //resultMap的个数
     int resultMapCount = resultMaps.size();
+    //判断 rsw != null && resultMapCount < 1 否则抛出异常
     validateResultMapsCount(rsw, resultMapCount);
+    //循环获取resultMap,获取与结果集对应的resultMap来处理
     while (rsw != null && resultMapCount > resultSetCount) {
+      //获取resultMap
       ResultMap resultMap = resultMaps.get(resultSetCount);
+      //通过resultMap处理结果集，并将处理后的数据添加到multipleResults中
       handleResultSet(rsw, resultMap, multipleResults, null);
+      //获取下一个结果集
       rsw = getNextResultSet(stmt);
+      //处理完成后清空结果集，进行下一轮
       cleanUpAfterHandlingResultSet();
       resultSetCount++;
     }
 
     String[] resultSets = mappedStatement.getResultSets();
     if (resultSets != null) {
+      //多结果集
       while (rsw != null && resultSetCount < resultSets.length) {
         ResultMapping parentMapping = nextResultMaps.get(resultSets[resultSetCount]);
         if (parentMapping != null) {

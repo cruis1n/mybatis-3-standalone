@@ -11,6 +11,8 @@ import java.util.List;
  */
 public interface UserDao {
 
+    User findOne(Integer id);
+
     List<User> findAll();
 
     void insertUser(User user);

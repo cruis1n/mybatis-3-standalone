@@ -51,10 +51,11 @@ public class MybatisTest {
         //getMapper()方法底层使用Proxy.newProxyInstance()方法创建代理对象，通过Executor实现对方法的增强，执行sql语句，并对结果集进行封装。
         //使用了代理模式
         UserDao userDao = session.getMapper(UserDao.class);
-        List<User> userList = userDao.findAll();
-        for (User user : userList) {
-            System.out.println(user);
-        }
+        User user = userDao.findOne(41);
+
+
+        System.out.println(user);
+
         is.close();
         session.close();
     }
