@@ -83,6 +83,7 @@ public class XMLConfigBuilder extends BaseBuilder {
   }
 
   private XMLConfigBuilder(XPathParser parser, String environment, Properties props) {
+    //初始化Configuration
     super(new Configuration());
     ErrorContext.instance().resource("SQL Mapper Configuration");
     this.configuration.setVariables(props);
@@ -96,6 +97,9 @@ public class XMLConfigBuilder extends BaseBuilder {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
     parsed = true;
+    //解析配置文件，XPathParser, dom 和 SAX都有用到
+    //parser.evalNode()拿到<configuration> 标签中的内容
+    //parseConfiguration()对标签体中的内容一一解析
     parseConfiguration(parser.evalNode("/configuration"));
     return configuration;
   }
@@ -103,20 +107,31 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void parseConfiguration(XNode root) {
     try {
       // issue #117 read properties first
+      // 对于全局配置文件各种标签的解析,并解析到的数据存入Configuration对象中
       propertiesElement(root.evalNode("properties"));
+      // 解析 settings 标签
       Properties settings = settingsAsProperties(root.evalNode("settings"));
       loadCustomVfs(settings);
+      //日志设置
       loadCustomLogImpl(settings);
+      // 类型别名
       typeAliasesElement(root.evalNode("typeAliases"));
+      // 插件
       pluginElement(root.evalNode("plugins"));
+      // 用于创建对象
       objectFactoryElement(root.evalNode("objectFactory"));
+      // 用于对对象进行加工
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
+      // 反射工具箱
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
+      // 对 settings 子标签 setting 进行赋值，默认值就是在这提供
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
+      // 创建数据源
       environmentsElement(root.evalNode("environments"));
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
       typeHandlerElement(root.evalNode("typeHandlers"));
+      // mapper映射文件的解析
       mapperElement(root.evalNode("mappers"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
@@ -364,10 +379,12 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void mapperElement(XNode parent) throws Exception {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        //package 包
         if ("package".equals(child.getName())) {
           String mapperPackage = child.getStringAttribute("name");
           configuration.addMappers(mapperPackage);
         } else {
+          // resource 绝对路径
           String resource = child.getStringAttribute("resource");
           String url = child.getStringAttribute("url");
           String mapperClass = child.getStringAttribute("class");
@@ -375,15 +392,18 @@ public class XMLConfigBuilder extends BaseBuilder {
             ErrorContext.instance().resource(resource);
             try(InputStream inputStream = Resources.getResourceAsStream(resource)) {
               XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
+              //解析mapper
               mapperParser.parse();
             }
           } else if (resource == null && url != null && mapperClass == null) {
+            // url 绝对路径
             ErrorContext.instance().resource(url);
             try(InputStream inputStream = Resources.getUrlAsStream(url)){
               XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
               mapperParser.parse();
             }
           } else if (resource == null && url == null && mapperClass != null) {
+            // class 单个接口
             Class<?> mapperInterface = Resources.classForName(mapperClass);
             configuration.addMapper(mapperInterface);
           } else {

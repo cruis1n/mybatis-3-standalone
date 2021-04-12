@@ -84,7 +84,9 @@ public class CachingExecutor implements Executor {
 
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
+    // 获取SQL
     BoundSql boundSql = ms.getBoundSql(parameterObject);
+    // 创建 CacheKey : 每一条SQL语句的缓存标识
     CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);
     return query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
@@ -92,20 +94,29 @@ public class CachingExecutor implements Executor {
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
       throws SQLException {
+    //Cache 在XMLMapperBuilder 类 cacheElement() 中创建
     Cache cache = ms.getCache();
+    // 由<cache>标签决定
     if (cache != null) {
+      // 当 flushCache="true" 清空一级二级缓存 >>
       flushCacheIfRequired(ms);
       if (ms.isUseCache() && resultHandler == null) {
         ensureNoOutParams(ms, boundSql);
+        // 获取二级缓存
+        // 缓存通过 TransactionalCacheManager, TransactionalCache管理
+        // 二级缓存存在跨会话读取数据的场景，必须要交给事务来管理；防止事务回滚时，读取到不存在的数据。
+        // 而一级缓存的作用域为当前会话SESSION，事务回滚了，当前会话缓存就被清空了
         @SuppressWarnings("unchecked")
         List<E> list = (List<E>) tcm.getObject(cache, key);
         if (list == null) {
           list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+          // 写入二级缓存
           tcm.putObject(cache, key, list); // issue #578 and #116
         }
         return list;
       }
     }
+    // 走到 SimpleExecutor / ReuseExecutor / BatchExecutor
     return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
 

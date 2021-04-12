@@ -144,15 +144,20 @@ public abstract class BaseExecutor implements Executor {
       throw new ExecutorException("Executor was closed.");
     }
     if (queryStack == 0 && ms.isFlushCacheRequired()) {
+      // 当 flushCache="true" ,即使是查询，也会清空一级缓存 >>
       clearLocalCache();
     }
     List<E> list;
     try {
+      // queryStack 计数 防止递归查询重复处理缓存
       queryStack++;
+      // 查询一级缓存
+      // ResultHandler和 ResultSetHandler的区别
       list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
       if (list != null) {
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
       } else {
+        // 真正的查询流程
         list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
       }
     } finally {
@@ -196,11 +201,12 @@ public abstract class BaseExecutor implements Executor {
     if (closed) {
       throw new ExecutorException("Executor was closed.");
     }
+    //-382344806:2348407917:com.zf.dao.UserDao.findAll:0:2147483647:SELECT * FROM user;
     CacheKey cacheKey = new CacheKey();
-    cacheKey.update(ms.getId());
-    cacheKey.update(rowBounds.getOffset());
-    cacheKey.update(rowBounds.getLimit());
-    cacheKey.update(boundSql.getSql());
+    cacheKey.update(ms.getId());//com.zf.dao.UserDao.findAll
+    cacheKey.update(rowBounds.getOffset());//0
+    cacheKey.update(rowBounds.getLimit());//2147483647 = 2^31-1
+    cacheKey.update(boundSql.getSql());//SELECT * FROM user
     List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
     TypeHandlerRegistry typeHandlerRegistry = ms.getConfiguration().getTypeHandlerRegistry();
     // mimic DefaultParameterHandler logic
@@ -320,12 +326,16 @@ public abstract class BaseExecutor implements Executor {
 
   private <E> List<E> queryFromDatabase(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
     List<E> list;
+    // 在一级缓存中先占位
     localCache.putObject(key, EXECUTION_PLACEHOLDER);
     try {
+      // 默认SimpleExecutor
       list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);
     } finally {
+      //移除占位符
       localCache.removeObject(key);
     }
+    //写入一级缓存
     localCache.putObject(key, list);
     if (ms.getStatementType() == StatementType.CALLABLE) {
       localOutputParameterCache.putObject(key, parameter);

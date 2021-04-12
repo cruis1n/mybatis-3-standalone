@@ -115,11 +115,15 @@ public class MapperAnnotationBuilder {
   public void parse() {
     String resource = type.toString();
     if (!configuration.isResourceLoaded(resource)) {
+      // 先判断Mapper.xml 有没有解析，没有的话先解析 Mapper.xml(例如定义 package 方式)
       loadXmlResource();
       configuration.addLoadedResource(resource);
       assistant.setCurrentNamespace(type.getName());
+      // 处理 @CacheNameSpace
       parseCache();
+      // 处理 @CacheNamespaceRef
       parseCacheRef();
+      // 获取所有方法
       for (Method method : type.getMethods()) {
         if (!canHaveStatement(method)) {
           continue;
@@ -129,6 +133,7 @@ public class MapperAnnotationBuilder {
           parseResultMap(method);
         }
         try {
+          // 解析方法上的注解(主要是SQL语句),添加到 MappedStatement 集合中 >>
           parseStatement(method);
         } catch (IncompleteElementException e) {
           configuration.addIncompleteMethod(new MethodResolver(this, method));
@@ -296,10 +301,11 @@ public class MapperAnnotationBuilder {
   void parseStatement(Method method) {
     final Class<?> parameterTypeClass = getParameterType(method);
     final LanguageDriver languageDriver = getLanguageDriver(method);
-
+    //从方法上获取SQL
     getAnnotationWrapper(method, true, statementAnnotationTypes).ifPresent(statementAnnotation -> {
       final SqlSource sqlSource = buildSqlSource(statementAnnotation.getAnnotation(), parameterTypeClass, languageDriver, method);
       final SqlCommandType sqlCommandType = statementAnnotation.getSqlCommandType();
+      // @Options 可以设置缓存，自增主键等
       final Options options = getAnnotationWrapper(method, false, Options.class).map(x -> (Options)x.getAnnotation()).orElse(null);
       final String mappedStatementId = type.getName() + "." + method.getName();
 
@@ -308,6 +314,7 @@ public class MapperAnnotationBuilder {
       String keyColumn = null;
       if (SqlCommandType.INSERT.equals(sqlCommandType) || SqlCommandType.UPDATE.equals(sqlCommandType)) {
         // first check for SelectKey annotation - that overrides everything else
+        // @SelectKey 返回的组件
         SelectKey selectKey = getAnnotationWrapper(method, false, SelectKey.class).map(x -> (SelectKey)x.getAnnotation()).orElse(null);
         if (selectKey != null) {
           keyGenerator = handleSelectKeyAnnotation(selectKey, mappedStatementId, getParameterType(method), languageDriver);
@@ -347,6 +354,7 @@ public class MapperAnnotationBuilder {
 
       String resultMapId = null;
       if (isSelect) {
+        // @ResultMap 定义返回值
         ResultMap resultMapAnnotation = method.getAnnotation(ResultMap.class);
         if (resultMapAnnotation != null) {
           resultMapId = String.join(",", resultMapAnnotation.value());
@@ -354,7 +362,7 @@ public class MapperAnnotationBuilder {
           resultMapId = generateResultMapName(method);
         }
       }
-
+      // 最后 增删改查SQL 也要添加到 MappedStatement中
       assistant.addMappedStatement(
           mappedStatementId,
           sqlSource,

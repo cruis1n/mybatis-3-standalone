@@ -80,9 +80,12 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
+      // toString hashCode equals getClass等方法，无需走到执行SQL的流程
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, args);
       } else {
+        //提升获取 mapperMethod 的效率，到MapperMethodInvoker(内部接口) 的invoke
+        //普通方法会走到 PlainMethodInvoker(内部类)的invoke
         return cachedInvoker(method).invoke(proxy, method, args, sqlSession);
       }
     } catch (Throwable t) {
@@ -92,8 +95,12 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
 
   private MapperMethodInvoker cachedInvoker(Method method) throws Throwable {
     try {
+      // Java8中 Map 的方法，根据 key获取值，如果值是nuLl，则把后面iObject 的值赋给 key
+      // 如果获取不到，就创建
+      //获取的是MapperMethodInvoker(接口)对象，只有一个invoke方法
       return MapUtil.computeIfAbsent(methodCache, method, m -> {
         if (m.isDefault()) {
+          //接口的默认方法(Java8)，只要实现接口都会继承接口的默认方法，例如 List.sort()
           try {
             if (privateLookupInMethod == null) {
               return new DefaultMethodInvoker(getMethodHandleJava8(method));
@@ -105,6 +112,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
             throw new RuntimeException(e);
           }
         } else {
+          // 创建了一个 MapperMethod
           return new PlainMethodInvoker(new MapperMethod(mapperInterface, method, sqlSession.getConfiguration()));
         }
       });
@@ -142,6 +150,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args, SqlSession sqlSession) throws Throwable {
+      // SQL执行的真正起点
       return mapperMethod.execute(sqlSession, args);
     }
   }
