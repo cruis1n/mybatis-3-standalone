@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.zf.dao.AccountDao">
+
+    <!--<cache type="org.mybatis.caches.redis.RedisCache" />-->
+
+    <resultMap id="account" type="com.zf.domain.Account">
+        <id property="id" column="id"/>
+        <result property="uid" column="uid"/>
+        <result property="money" column="money"/>
+        <association property="user" javaType="com.zf.domain.User">
+            <id property="id" column="id"/>
+            <result property="username" column="username"/>
+            <result property="birthday" column="birthday"/>
+            <result property="sex" column="sex"/>
+            <result property="address" column="address"/>
+        </association>
+    </resultMap>
+
+
+
+    <select id="findAll" resultMap="account" >
+        SELECT u.*,a.`ID`,a.UID,a.`MONEY`
+        FROM `user` u,`account` a
+        WHERE u.id = a.`UID`;
+    </select>
+
+
+</mapper>

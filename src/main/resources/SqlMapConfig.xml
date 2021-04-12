@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<!-- mybatis 主配置文件 -->
+
+<configuration>
+
+
+    <!-- url="file:\\\I:\IdeaProject\ReviewSSM\ReviewMybatis\src\main\resources\jdbcConfig.properties" -->
+    <properties  resource="jdbcConfig.properties"  />
+
+    <!--<settings>-->
+        <!--<setting name="cacheEnabled" value="true"/>-->
+        <!--&lt;!&ndash; 将一级缓存作用域设置为每一个执行的STATEMENT &ndash;&gt;-->
+        <!--<setting name="localCacheScope" value="STATEMENT"/>-->
+        <!--&lt;!&ndash; 默认作用域为SESSION,即为每一个sqlSession会话 &ndash;&gt;-->
+        <!--<setting name="localCacheScope" value="SESSION"/>-->
+    <!--</settings>-->
+    <!-- 配置别名 -->
+    <typeAliases >
+        <typeAlias type="com.zf.domain.User" alias="user"/>
+        <!--<package name="com.zf.domain"/>-->
+    </typeAliases>
+
+
+    <!-- 配置环境 -->
+    <environments default="mysql">
+        <!-- 配置mysql的环境 -->
+        <environment id="mysql">
+            <!-- 配置事务类型 -->
+            <transactionManager type="JDBC"/>
+            <!-- 配置数据源（连接池） -->
+            <dataSource type="POOLED">
+                <!-- 配置数据库连接信息 -->
+            <!--<property name="driver" value="com.mysql.jdbc.Driver"/>
+                <property name="url" value="jdbc:mysql://localhost:3306/eesy_mybatis"/>
+                <property name="username" value="root"/>
+                <property name="password" value="root"/>-->
+                <property name="driver" value="${driver}"/>
+                <property name="url" value="${url}"/>
+                <property name="username" value="${username}"/>
+                <property name="password" value="${password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <!-- 指定映射文件的位置，映射文件指的是每个dao独立的配置文件 -->
+    <mappers>
+        <!-- resource指定xml方式的mapper位置 class指定注解方式的mapper -->
+        <!--<mapper resource="com/zf/dao/UserDao.xml"/>-->
+        <!-- 指定dao接口所在的包 不用单独定义mapper -->
+        <package name="com.zf.dao"/>
+    </mappers>
+</configuration>
